@@ -1,14 +1,28 @@
 package slackbot
 
 import (
-	"log"
+	"os"
+
+	"github.com/slack-go/slack"
 )
 
-func init()  {
-	log.Println("Slack bot init")
+var (
+	// SlackClient is the client of slack
+	SlackClient *slack.Client
+
+	// Rtm is the runtime execution for slack
+	Rtm *slack.RTM
+)
+
+func init() {
+	SlackClient = slack.New(os.Getenv("SLACK_ACCESS_TOKEN"))
+	Rtm = SlackClient.NewRTM()
+	go Rtm.ManageConnection()
+
+	
 }
 
-// HelloWorld is for print a simple greet
-func HelloWorld() {
-	log.Println("Hello World!")
+// HelloWorld is for return a simple greet
+func HelloName(name string) string {
+	return "Hello, " + name
 }

@@ -1,22 +1,21 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"dev-search/slackbot"
+	"github.com/slack-go/slack"
+	"github.com/ElvisGastelum/dev-search/slackbot"
 )
 
-func init() {
-	fmt.Println("Desde el paquete principal")
+func main() {
+	for msg := range slackbot.Rtm.IncomingEvents {
+		switch ev := msg.Data.(type) {
+		case *slack.MessageEvent:
+			if len(ev.BotID) == 0 {
+				go handleMessage(ev)
+			}
+		}
+	}
 }
 
-func main() {
-	slackbot.HelloWorld()
-	var user slackbot.User
-	user.Name = "Juanito"
-
-	user2 := slackbot.User{ Name: "Panchito" }
-
-	log.Println(user.Name)
-	log.Println(user2.Name)
+func handleMessage(ev *slack.MessageEvent)  {
+	
 }

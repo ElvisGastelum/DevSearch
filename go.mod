@@ -1,3 +1,5 @@
-module dev-search
+module github.com/ElvisGastelum/dev-search
 
 go 1.14
+
+require github.com/slack-go/slack v0.6.5
