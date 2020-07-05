@@ -22,7 +22,7 @@ func init() {
 	
 }
 
-// HelloWorld is for return a simple greet
+// HelloName is for return a simple greet
 func HelloName(name string) string {
-	return "Hello, " + name
+	return "Hello, " + name + "!"
 }

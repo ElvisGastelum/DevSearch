@@ -7,7 +7,7 @@ import (
 
 func TestHelloWorld(t *testing.T){
 	name := "Elvis"
-	expected := "Hello, " + name
+	expected := "Hello, " + name + "!"
 	result := slackbot.HelloName("Elvis")
 
 	if result != expected {
