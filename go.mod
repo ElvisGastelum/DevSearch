@@ -1,4 +1,4 @@
-module github.com/ElvisGastelum/dev-search
+module github.com/elvisgastelum/dev-search
 
 go 1.14
 
