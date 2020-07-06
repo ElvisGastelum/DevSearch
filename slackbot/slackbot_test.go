@@ -5,7 +5,7 @@ import (
 	"github.com/elvisgastelum/dev-search/slackbot"
 )
 
-func TestHelloWorld(t *testing.T){
+func TestHelloName(t *testing.T){
 	name := "Elvis"
 	expected := "Hello, " + name + "!"
 	result := slackbot.HelloName("Elvis")
