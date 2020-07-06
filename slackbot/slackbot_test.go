@@ -2,7 +2,7 @@ package slackbot_test
 
 import (
 	"testing"
-	"github.com/ElvisGastelum/dev-search/slackbot"
+	"github.com/elvisgastelum/dev-search/slackbot"
 )
 
 func TestHelloWorld(t *testing.T){
