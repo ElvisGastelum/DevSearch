@@ -1,0 +1,11 @@
+package main
+
+import (
+	"github.com/elvisgastelum/devsearchbot"	
+)
+// Before run this program i set up the enviroment variable "SLACK_ACCESS_TOKEN"
+func main() {
+	bot := devsearchbot.Bot{}
+
+	bot.Start()
+}
