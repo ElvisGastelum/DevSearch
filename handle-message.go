@@ -2,31 +2,25 @@ package devsearchbot
 
 import (
 	"log"
-	"regexp"
-	"strings"
+	"net/http"
+	"bytes"
+	"fmt"
 
-	"github.com/slack-go/slack"
+//	"github.com/slack-go/slack"
 )
 
-
 // handleMessage is function for handle the incomming messages
-func handleMessage(rtm *slack.RTM, ev *slack.MessageEvent) {
-	text := ev.Text
-	text = strings.TrimSpace(text)
-	text = strings.ToLower(text)
-	log.Printf("User Text: %s\n", text)
-
-	pingPong(rtm, text , ev)
-
-}
-
-// pingPong is a example function for response pong when the user type ping on the chat  
-func pingPong (rtm *slack.RTM, text string, ev *slack.MessageEvent){
-	info := rtm.GetInfo()
-
-	matched, _ := regexp.MatchString("ping", text)
-
-	if ev.User != info.User.ID && matched {
-		rtm.SendMessage(rtm.NewOutgoingMessage("pong", ev.Channel))
+func handleMessage(URL, userName string) {
+	var jsonStr = []byte(`{"text":"Hello there, ` + fmt.Sprintf("%s", userName) +`!"}`)
+	post, err := http.NewRequest("POST",URL, bytes.NewBuffer(jsonStr))
+	if err != nil {
+		log.Fatal(err)
 	}
+	post.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	executePost, er := client.Do(post)
+	if er != nil {
+		log.Fatal(er)
+	}
+	defer executePost.Body.Close()
 }
