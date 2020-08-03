@@ -3,8 +3,6 @@ package devsearchbot
 import (
 	"log"
 	"net/http"
-//	"github.com/slack-go/slack"
-//  "github.com/elvisgastelum/utils"
 )
 
 // Bot is the instance of dev search
@@ -20,11 +18,6 @@ type Bot struct{}
 // To run this server, you need set up the enviroment var
 // SLACK_ACCESS_TOKEN w/ the token of the slack bot app
 func (b *Bot) Start() {
-	// token := utils.Getenv("SLACK_ACCESS_TOKEN")
-  // api := slack.New(token)
-  // rtm := api.NewRTM()
-	// go rtm.ManageConnection()
-
 	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) { 
 		if request.URL.Path != "/" {
 			http.NotFound(writer, request)
