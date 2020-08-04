@@ -28,8 +28,8 @@ func (b *Bot) Start() {
 				if err != nil {
 					log.Fatal(err)
 				}
-				postURL, userName := request.PostForm.Get(`response_url`), request.PostForm.Get(`user_name`)
-				handleMessage(postURL, userName)
+				postURL, userName, text := request.PostForm.Get(`response_url`), request.PostForm.Get(`user_name`), request.PostForm.Get(`text`)
+				handleMessage(postURL, userName, text)
 		} else {
 				http.Error(writer, "Invalid request method.", 405)					
 		} 

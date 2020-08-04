@@ -37,8 +37,8 @@ type Payload struct {
 }
 
 // handleMessage is function for handle the incomming messages
-func handleMessage(URL, userName string) {
-	getAnswer := searchAnswer()
+func handleMessage(URL, userName, text string) {
+	getAnswer := searchAnswer(text)
 	slackMessage := dataBinding(getAnswer)
 	var jsonStr = []byte(slackMessage)
 	post, err := http.NewRequest("POST", URL, bytes.NewBuffer(jsonStr))
@@ -54,8 +54,9 @@ func handleMessage(URL, userName string) {
 	defer executePost.Body.Close()
 }
 
-func searchAnswer() SearchResults {
-	url := "https://www.googleapis.com/customsearch/v1?key=AIzaSyD8QNzBdjzt3ZNEbGTz4P1rSAnvDPtbrUU&cx=005033773481765961543:gti8czyzyrw&num=3&q=golang"
+func searchAnswer(text string) SearchResults {
+	text = strings.Replace(text, " ", "+", -1)
+	url := fmt.Sprintf("https://www.googleapis.com/customsearch/v1?key=AIzaSyD8QNzBdjzt3ZNEbGTz4P1rSAnvDPtbrUU&cx=005033773481765961543:gti8czyzyrw&num=3&q=%s", text)
 	googleClient := http.Client{
 		Timeout: time.Second * 3, // Maximum of 3 secs
 	}
