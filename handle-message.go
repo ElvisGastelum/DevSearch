@@ -12,13 +12,13 @@ import (
 )
 
 type SearchResults struct {
-	Items []Item `json:items`
+	Items []Item `json:"items"`
 }
 
 type Item struct {
-	Link    string `json:link`
-	Snippet string `json:snippet`
-	Title   string `json:title`
+	Link    string `json:"link"`
+	Snippet string `json:"snippet"`
+	Title   string `json:"title"`
 }
 
 type TextInfo struct {
