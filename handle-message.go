@@ -93,7 +93,7 @@ func dataBinding( data SearchResults) string {
 	 slackBlock := `{"blocks":[`
 	 for i := 0; i < 3; i++ {
 	 	item := data.Items[i]
-		slackBlock += fmt.Sprintf(`{"type":"section","text":{"type":"mrkdwn","text":"*<%s|%s>*\n>_%s_"},"accessory":{"type":"button","text":{"type":"plain_text","text":"Send","emoji":true},"value":"click_me_123"}},`, item.Link, item.Title, strings.Replace(item.Snippet, "\n", " ", -1))
+		slackBlock += fmt.Sprintf(`{"type":"section","text":{"type":"mrkdwn","text":"*<%s|%s>*\n>_%s_"},"accessory":{"type":"button","text":{"type":"plain_text","text":"Send","emoji":true},"value":"button_%d"}},`, item.Link, item.Title, strings.Replace(item.Snippet, "\n", " ", -1), i)
 	 }
 	slackBlock += `{"type":"actions","elements":[{"type":"button","text":{"type":"plain_text","text":"Cancel","emoji":true},"style":"danger","value":"click_me_123"}]}`
 	slackBlock += `]}` 
