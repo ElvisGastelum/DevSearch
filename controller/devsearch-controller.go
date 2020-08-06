@@ -1,39 +1,51 @@
-package devsearchbot
+package controller
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"bytes"
-	"fmt"
-	"time"
-	"io/ioutil"
-	"encoding/json"
 	"strings"
+	"time"
+
+	"github.com/elvisgastelum/devsearchbot/model"
 )
 
-type SearchResults struct {
-	Items []Item `json:"items"`
+type controller struct{}
+
+type DevSearchController interface {
+	SlashCommand(response http.ResponseWriter, request *http.Request)
+	Actions(response http.ResponseWriter, request *http.Request)
 }
 
-type Item struct {
-	Link    string `json:"link"`
-	Snippet string `json:"snippet"`
-	Title   string `json:"title"`
+func NewDevSearchController() DevSearchController {
+	return &controller{}
 }
 
-type TextInfo struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
+func (*controller) SlashCommand(response http.ResponseWriter, request *http.Request) {
+	err := request.ParseForm()
+	if err != nil {
+		log.Fatal(err)
+	}
+	postURL, userName, text := request.PostForm.Get(`response_url`), request.PostForm.Get(`user_name`), request.PostForm.Get(`text`)
+	handleMessage(postURL, userName, text)
 }
 
-type Block struct {
-	Type    string   `json:"type"`
-	Text    TextInfo `json:"text"`
-	BlockID string   `json:"block_id"`
-}
+func (*controller) Actions(response http.ResponseWriter, request *http.Request) {
+	err := request.ParseForm()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-type Payload struct {
-	Blocks []Block `json:"blocks"`
+	payload := model.Payload{}
+
+	jsonErr := json.Unmarshal([]byte(request.Form.Get("payload")), &payload)
+	if jsonErr != nil {
+		log.Fatal(jsonErr)
+	}
+	fmt.Println(payload.Actions[0].Value)
 }
 
 // handleMessage is function for handle the incomming messages
@@ -54,7 +66,7 @@ func handleMessage(URL, userName, text string) {
 	defer executePost.Body.Close()
 }
 
-func searchAnswer(text string) SearchResults {
+func searchAnswer(text string) model.SearchResults {
 	text = strings.Replace(text, " ", "+", -1)
 	url := fmt.Sprintf("https://www.googleapis.com/customsearch/v1?key=AIzaSyD8QNzBdjzt3ZNEbGTz4P1rSAnvDPtbrUU&cx=005033773481765961543:gti8czyzyrw&num=3&q=%s", text)
 	googleClient := http.Client{
@@ -80,8 +92,8 @@ func searchAnswer(text string) SearchResults {
 	return value
 }
 
-func apiMessage(jsonRaw []byte) SearchResults {
-	jsonStructure := SearchResults{}
+func apiMessage(jsonRaw []byte) model.SearchResults {
+	jsonStructure := model.SearchResults{}
 	jsonErr := json.Unmarshal(jsonRaw, &jsonStructure)
 	if jsonErr != nil {
 		log.Fatal(jsonErr)
@@ -89,13 +101,13 @@ func apiMessage(jsonRaw []byte) SearchResults {
 	return jsonStructure
 }
 
-func dataBinding( data SearchResults) string {
-	 slackBlock := `{"blocks":[`
-	 for i := 0; i < 3; i++ {
-	 	item := data.Items[i]
+func dataBinding(data model.SearchResults) string {
+	slackBlock := `{"blocks":[`
+	for i := 0; i < 3; i++ {
+		item := data.Items[i]
 		slackBlock += fmt.Sprintf(`{"type":"section","text":{"type":"mrkdwn","text":"*<%s|%s>*\n>_%s_"},"accessory":{"type":"button","text":{"type":"plain_text","text":"Send","emoji":true},"value":"button_%d"}},`, item.Link, item.Title, strings.Replace(item.Snippet, "\n", " ", -1), i)
-	 }
+	}
 	slackBlock += `{"type":"actions","elements":[{"type":"button","text":{"type":"plain_text","text":"Cancel","emoji":true},"style":"danger","value":"click_me_123"}]}`
-	slackBlock += `]}` 
+	slackBlock += `]}`
 	return slackBlock
 }
