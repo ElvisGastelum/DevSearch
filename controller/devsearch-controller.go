@@ -48,6 +48,9 @@ func (*controller) Actions(response http.ResponseWriter, request *http.Request) 
 	fmt.Println(payload.Actions[0].Value)
 }
 
+//Sections is used to fill in text from Google API data
+var Sections [3]string
+
 // handleMessage is function for handle the incomming messages
 func handleMessage(URL, userName, text string) {
 	getAnswer := searchAnswer(text)
@@ -101,13 +104,74 @@ func apiMessage(jsonRaw []byte) model.SearchResults {
 	return jsonStructure
 }
 
-func dataBinding(data model.SearchResults) string {
+func dataBinding( data model.SearchResults) string {
 	slackBlock := `{"blocks":[`
 	for i := 0; i < 3; i++ {
 		item := data.Items[i]
-		slackBlock += fmt.Sprintf(`{"type":"section","text":{"type":"mrkdwn","text":"*<%s|%s>*\n>_%s_"},"accessory":{"type":"button","text":{"type":"plain_text","text":"Send","emoji":true},"value":"button_%d"}},`, item.Link, item.Title, strings.Replace(item.Snippet, "\n", " ", -1), i)
+		Sections[i] = fmt.Sprintf(`"*<%s|%s>*\n>_%s_"`, item.Link, item.Title, strings.Replace(item.Snippet, "\n", " ", -1))
+		slackBlock += fmt.Sprintf(`{"type":"section","text":{"type":"mrkdwn","text":%s},"accessory":{"type":"button","text":{"type":"plain_text","text":"Send","emoji":true},"value":"button_%d"}},`, Sections[i], i)
 	}
-	slackBlock += `{"type":"actions","elements":[{"type":"button","text":{"type":"plain_text","text":"Cancel","emoji":true},"style":"danger","value":"click_me_123"}]}`
-	slackBlock += `]}`
+	slackBlock += `{"type":"actions","elements":[{"type":"button","text":{"type":"plain_text","text":"Cancel","emoji":true},"style":"danger","value":"cancel"}]}`
+	slackBlock += `]}` 
 	return slackBlock
+}
+
+//ButtonAction determines the response a certain button will give
+func ButtonAction(action, URL string) {
+	switch action {
+	case "button_0":
+		var jsonStr = []byte(fmt.Sprintf(`{"text":%s,"response_type":"in_channel","replace_original":true,"delete_original":true}`, Sections[0]))
+		post, err := http.NewRequest("POST", URL, bytes.NewBuffer(jsonStr))
+		if err != nil {
+			log.Fatal(err)
+		}
+		post.Header.Set("Content-Type", "application/json")
+		client := &http.Client{}
+		executePost, er := client.Do(post)
+		if er != nil {
+			log.Fatal(er)
+		}
+		defer executePost.Body.Close()
+	case "button_1":
+		var jsonStr = []byte(fmt.Sprintf(`{"text":%s,"response_type":"in_channel","replace_original":true,"delete_original":true}`, Sections[1]))
+		post, err := http.NewRequest("POST", URL, bytes.NewBuffer(jsonStr))
+		if err != nil {
+			log.Fatal(err)
+		}
+		post.Header.Set("Content-Type", "application/json")
+		client := &http.Client{}
+		executePost, er := client.Do(post)
+		if er != nil {
+			log.Fatal(er)
+		}
+		defer executePost.Body.Close()
+	case "button_2":
+		var jsonStr = []byte(fmt.Sprintf(`{"text":%s,"response_type":"in_channel","replace_original":true,"delete_original":true}`, Sections[2]))
+		post, err := http.NewRequest("POST", URL, bytes.NewBuffer(jsonStr))
+		if err != nil {
+			log.Fatal(err)
+		}
+		post.Header.Set("Content-Type", "application/json")
+		client := &http.Client{}
+		executePost, er := client.Do(post)
+		if er != nil {
+			log.Fatal(er)
+		}
+		defer executePost.Body.Close()
+	case "cancel":
+		var jsonStr = []byte(`{"text":null,"response_type":"ephemeral","replace_original":true,"delete_original":true}`)
+		post, err := http.NewRequest("POST", URL, bytes.NewBuffer(jsonStr))
+		if err != nil {
+			log.Fatal(err)
+		}
+		post.Header.Set("Content-Type", "application/json")
+		client := &http.Client{}
+		executePost, er := client.Do(post)
+		if er != nil {
+			log.Fatal(er)
+		}
+		defer executePost.Body.Close()
+	default:
+		fmt.Println("entered default event")
+	}
 }
