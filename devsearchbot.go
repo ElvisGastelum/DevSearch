@@ -3,7 +3,6 @@ package devsearchbot
 import (
 	"log"
 	"net/http"
-	"fmt"
 	"encoding/json"
 	
 )
@@ -18,10 +17,11 @@ type Bot struct{}
 
 type ActionBlock struct {
 	Action []Actions `json:"actions"`
+	URL string `json:"response_url"`
 }
 
 type Actions struct {
-	Value string `json:"value"`
+	Value string `json:"value"`	
 }
 
 
@@ -35,6 +35,7 @@ func (b *Bot) Start() {
 				if err != nil {
 					log.Fatal(err)
 				}
+				writer.WriteHeader(http.StatusOK)
 				postURL, userName, text := request.PostForm.Get(`response_url`), request.PostForm.Get(`user_name`), request.PostForm.Get(`text`)				
 				handleMessage(postURL, userName, text)
 		} else {
@@ -53,11 +54,11 @@ func (b *Bot) Start() {
 			jsonErr := json.Unmarshal([]byte(jsonPayload), &jsonStructure)
 			if jsonErr != nil {
 				log.Fatal(jsonErr)
-			}
-			fmt.Println(jsonStructure.Action[0].Value)
-	} else {
+			}	
+			ButtonAction(jsonStructure.Action[0].Value, jsonStructure.URL)
+		} else {
 			http.Error(writer, "Invalid request method.", 405)					
-	} 
+		} 
 	})
 	
   log.Println("Listening on :3000...")
