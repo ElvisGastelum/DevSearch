@@ -29,8 +29,12 @@ func (*controller) SlashCommand(response http.ResponseWriter, request *http.Requ
 	if err != nil {
 		log.Fatal(err)
 	}
-	postURL, userName, text := request.PostForm.Get(`response_url`), request.PostForm.Get(`user_name`), request.PostForm.Get(`text`)
-	handleMessage(postURL, userName, text)
+	handleMessage(
+		request.Form.Get(`response_url`),
+		request.Form.Get(`user_name`),
+		request.Form.Get(`text`),
+	)
+	log.Println("Slash Request")
 }
 
 func (*controller) Actions(response http.ResponseWriter, request *http.Request) {
@@ -45,20 +49,25 @@ func (*controller) Actions(response http.ResponseWriter, request *http.Request) 
 	if jsonErr != nil {
 		log.Fatal(jsonErr)
 	}
-	fmt.Println(payload.Actions[0].Value)
+	ButtonAction(payload.Actions[0].Value, payload.ResponseURL)
 }
 
 //Sections is used to fill in text from Google API data
 var Sections [3]string
 
 // handleMessage is function for handle the incomming messages
-func handleMessage(URL, userName, text string) {
-	getAnswer := searchAnswer(text)
-	slackMessage := dataBinding(getAnswer)
-	var jsonStr = []byte(slackMessage)
-	post, err := http.NewRequest("POST", URL, bytes.NewBuffer(jsonStr))
-	if err != nil {
-		log.Fatal(err)
+func handleMessage(url, userName, text string) {
+	answer := searchAnswer(text)
+	response, err1 := dataBinding(answer).ToJSON()
+	if err1 != nil {
+		log.Fatal(err1)
+	}
+
+	// buf := new(bytes.Buffer)
+	// json.NewEncoder(buf).Encode(response)
+	post, err2 := http.NewRequest(http.MethodPost, url, bytes.NewReader(response))
+	if err2 != nil {
+		log.Fatal(err2)
 	}
 	post.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
@@ -104,16 +113,50 @@ func apiMessage(jsonRaw []byte) model.SearchResults {
 	return jsonStructure
 }
 
-func dataBinding( data model.SearchResults) string {
-	slackBlock := `{"blocks":[`
+func dataBinding(data model.SearchResults) *model.SlashCommandResponse {
+
+	slashCommandResponse := model.SlashCommandResponse{}
+	var blocks [4]model.Block
+
 	for i := 0; i < 3; i++ {
 		item := data.Items[i]
+
 		Sections[i] = fmt.Sprintf(`"*<%s|%s>*\n>_%s_"`, item.Link, item.Title, strings.Replace(item.Snippet, "\n", " ", -1))
-		slackBlock += fmt.Sprintf(`{"type":"section","text":{"type":"mrkdwn","text":%s},"accessory":{"type":"button","text":{"type":"plain_text","text":"Send","emoji":true},"value":"button_%d"}},`, Sections[i], i)
+
+		blocks[i].Type = "section"
+		blocks[i].Text = model.TextInfo{
+			Type: "mrkdwn",
+			Text: Sections[i],
+		}
+		blocks[i].Accessory = model.Accessory{
+			Type: "button",
+			Text: model.AccessoryText{
+				Type:  "plain_text",
+				Text:  "Send",
+				Emoji: true,
+			},
+			Value: fmt.Sprintf("button_%d", i),
+		}
 	}
-	slackBlock += `{"type":"actions","elements":[{"type":"button","text":{"type":"plain_text","text":"Cancel","emoji":true},"style":"danger","value":"cancel"}]}`
-	slackBlock += `]}` 
-	return slackBlock
+
+	blocks[3].Type = "actions"
+	blocks[3].Elements = []model.Button{
+		model.Button{
+			Type: "button",
+			Text: model.AccessoryText{
+				Type:  "plain_text",
+				Text:  "Cancel",
+				Emoji: true,
+			},
+			Style: "danger",
+			Value: "cancel",
+		},
+	}
+
+	slashCommandResponse.Blocks = blocks
+
+	return &slashCommandResponse
+
 }
 
 //ButtonAction determines the response a certain button will give
