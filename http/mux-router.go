@@ -25,7 +25,13 @@ func (*muxRouter) Post(uri string, f func(w http.ResponseWriter, r *http.Request
 	muxDispatcher.HandleFunc(uri, f).Methods(http.MethodPost)
 }
 
-func (*muxRouter) Serve(port string) {
+func (*muxRouter) Serve(port string) error {
 	log.Printf("Mux HTTP server running on port %v\n", port)
-	log.Fatal(http.ListenAndServe(port, muxDispatcher))
+	
+	err := http.ListenAndServe(port, muxDispatcher)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
