@@ -1,7 +1,6 @@
-package helpers
+package app
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,55 +9,54 @@ import (
 	"strings"
 	"time"
 
+	"github.com/elvisgastelum/devsearchbot/helpers"
 	"github.com/elvisgastelum/devsearchbot/model"
 )
 
-// dataText is used to fill in text from Google API data
-var dataText = make(map[string]string)
+// SlashCommands is function for handle the incomming messages
+func SlashCommands(url, text string) {
+	answer, err := searchAnswer(text)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// HandleMessage is function for handle the incomming messages
-func HandleMessage(url, userName, text string) {
-	answer := searchAnswer(text)
-	response, err := dataBinding(answer).ToJSON()
+	response, err := slashCommandResponse(answer).ToJSON()
 	if err != nil {
 		log.Fatal(err)
 	}
-	post, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(response))
+
+	err = helpers.NewPostRequest(response, url)
 	if err != nil {
 		log.Fatal(err)
 	}
-	post.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	executePost, err := client.Do(post)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer executePost.Body.Close()
 }
 
-func searchAnswer(text string) model.SearchResults {
+func searchAnswer(text string) (model.SearchResults, error) {
 	text = strings.Replace(text, " ", "+", -1)
 	url := fmt.Sprintf("https://www.googleapis.com/customsearch/v1?key=AIzaSyD8QNzBdjzt3ZNEbGTz4P1rSAnvDPtbrUU&cx=005033773481765961543:gti8czyzyrw&num=3&q=%s", text)
+	var value model.SearchResults
+
 	googleClient := http.Client{
-		Timeout: time.Second * 3,
+		Timeout: time.Second * 5,
 	}
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		log.Fatal(err)
+		return value, err
 	}
 	req.Header.Set("User-Agent", "Isacc Hernandez")
-	res, getErr := googleClient.Do(req)
-	if getErr != nil {
-		log.Fatal(getErr)
+	res, err := googleClient.Do(req)
+	if err != nil {
+		return value, err
 	}
 	defer res.Body.Close()
 
-	body, readErr := ioutil.ReadAll(res.Body)
-	if readErr != nil {
-		log.Fatal(readErr)
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return value, err
 	}
-	value := apiMessage(body)
-	return value
+	value = apiMessage(body)
+	return value, nil
+
 }
 
 func apiMessage(jsonRaw []byte) model.SearchResults {
@@ -70,7 +68,7 @@ func apiMessage(jsonRaw []byte) model.SearchResults {
 	return jsonStructure
 }
 
-func dataBinding(data model.SearchResults) *model.SlashCommandResponse {
+func slashCommandResponse(data model.SearchResults) *model.SlashCommandResponse {
 	if len(data.Items) < 3 {
 		return nil
 	}
@@ -82,7 +80,6 @@ func dataBinding(data model.SearchResults) *model.SlashCommandResponse {
 		item := data.Items[i]
 
 		buttonValue := fmt.Sprintf("*<%s|%s>*\n>_%s_", item.Link, item.Title, strings.Replace(item.Snippet, "\n", " ", -1))
-		dataText[buttonValue] = buttonValue
 
 		blocks[i] = map[string]interface{}{
 			"type": "section",
@@ -93,11 +90,11 @@ func dataBinding(data model.SearchResults) *model.SlashCommandResponse {
 					"text":  "Send",
 					"emoji": true,
 				},
-				"value": dataText[buttonValue],
+				"value": buttonValue,
 			},
 			"text": map[string]interface{}{
 				"type": "mrkdwn",
-				"text": dataText[buttonValue],
+				"text": buttonValue,
 			},
 		}
 
@@ -122,28 +119,4 @@ func dataBinding(data model.SearchResults) *model.SlashCommandResponse {
 	slashCommandResponse["blocks"] = blocks
 
 	return &slashCommandResponse
-}
-
-// ButtonAction determines the response a certain button will give
-func ButtonAction(action, responseURL string) {
-
-	var jsonBytes []byte
-
-	if action == "cancel" {
-		jsonBytes = []byte(`{"text":null,"response_type":"ephemeral","replace_original":true,"delete_original":true}`)
-	} else {
-		jsonBytes = []byte(fmt.Sprintf(`{"text":"%s","response_type":"in_channel","replace_original":true,"delete_original":true}`, dataText[action]))
-	}
-
-	post, err := http.NewRequest(http.MethodPost, responseURL, bytes.NewBuffer(jsonBytes))
-	if err != nil {
-		log.Fatal(err)
-	}
-	post.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	executePost, er := client.Do(post)
-	if er != nil {
-		log.Fatal(er)
-	}
-	defer executePost.Body.Close()
 }

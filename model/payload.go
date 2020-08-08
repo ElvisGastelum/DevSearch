@@ -1,5 +1,7 @@
 package model
 
+import "encoding/json"
+
 type Payload struct {
 	Actions []actions `json:"actions"`
 	Token string `json:"token"`
@@ -30,4 +32,12 @@ type user struct {
 type team struct {
 	ID string `json:"id"`
 	Domain string `json:"domain"`
+}
+
+func (p *Payload) UnmarshallJSON(bytes []byte) error {
+	err := json.Unmarshal(bytes, &p)
+	if err != nil {
+		return err
+	}
+	return nil
 }

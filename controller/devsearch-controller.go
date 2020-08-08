@@ -1,18 +1,17 @@
 package controller
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 
+	"github.com/elvisgastelum/devsearchbot/app"
 	"github.com/elvisgastelum/devsearchbot/model"
-	"github.com/elvisgastelum/devsearchbot/helpers"
 )
 
 type controller struct{}
 
 type DevSearchController interface {
-	SlashCommand(response http.ResponseWriter, request *http.Request)
+	SlashCommands(response http.ResponseWriter, request *http.Request)
 	Actions(response http.ResponseWriter, request *http.Request)
 }
 
@@ -20,14 +19,16 @@ func NewDevSearchController() DevSearchController {
 	return &controller{}
 }
 
-func (*controller) SlashCommand(response http.ResponseWriter, request *http.Request) {
+func (*controller) SlashCommands(response http.ResponseWriter, request *http.Request) {
 	err := request.ParseForm()
 	if err != nil {
 		log.Fatal(err)
 	}
-	go helpers.HandleMessage(
+
+	log.Printf("New command from: %s", request.Form.Get(`user_name`))
+
+	go app.SlashCommands(
 		request.Form.Get(`response_url`),
-		request.Form.Get(`user_name`),
 		request.Form.Get(`text`),
 	)
 }
@@ -40,9 +41,15 @@ func (*controller) Actions(response http.ResponseWriter, request *http.Request) 
 
 	var payload model.Payload
 
-	jsonErr := json.Unmarshal([]byte(request.Form.Get("payload")), &payload)
-	if jsonErr != nil {
-		log.Fatal(jsonErr)
+	err = payload.UnmarshallJSON([]byte(request.Form.Get("payload")))
+	if err != nil {
+		log.Fatal(err)
 	}
-	helpers.ButtonAction(payload.Actions[0].Value, payload.ResponseURL)
+
+	log.Printf("New action from: %s", payload.User.Name)
+
+	go app.ButtonActions(
+		payload.Actions[0].Value,
+		payload.ResponseURL,
+	)
 }

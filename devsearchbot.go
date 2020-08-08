@@ -22,7 +22,7 @@ type Bot struct{}
 func (b *Bot) Start() {
 	const port string = ":3000"
 
-	httpRouter.Post("/slack/slash-commands/devz-search", devSearchController.SlashCommand)
+	httpRouter.Post("/slack/slash-commands/devz-search", devSearchController.SlashCommands)
 
 	httpRouter.Post("/slack/actions/devz-search", devSearchController.Actions)
 
