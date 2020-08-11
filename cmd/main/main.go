@@ -1,11 +1,18 @@
 package main
 
 import (
-	"github.com/elvisgastelum/devsearchbot"	
-)
-// Before run this program i set up the enviroment variable "SLACK_ACCESS_TOKEN"
-func main() {
-	bot := devsearchbot.Bot{}
+	"log"
 
-	bot.Start()
+	"github.com/elvisgastelum/devsearchbot"
+)
+
+var (
+	bot devsearchbot.Bot = devsearchbot.NewDevSearchBot()
+)
+
+func main() {
+	err := bot.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

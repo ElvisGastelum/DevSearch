@@ -20,3 +20,6 @@ keys
 # binaries
 main
 *.exe
+
+# Directory for testing golang
+cmd/testing

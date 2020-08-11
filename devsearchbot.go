@@ -1,41 +1,44 @@
 package devsearchbot
 
 import (
-	"log"
-	"net/http"
+	"github.com/elvisgastelum/devsearchbot/controller"
+	router "github.com/elvisgastelum/devsearchbot/http"
 )
 
-// Bot is the instance of dev search
+var (
+	devSearchController controller.DevSearchController = controller.NewDevSearchController()
+	httpRouter          router.Router                  = router.NewMuxRouter()
+)
+
+type bot struct{}
+
+// Bot is the public interface to create the bot 
+type Bot interface {
+	Start() error
+}
+
+// NewDevSearchBot return the instance of dev search
 // Simple example use:
 //
-// bot := devsearchbot.Bot{}
+// bot := devsearchbot.NewBot()
 //
 // bot.Start()
-type Bot struct{}
+func NewDevSearchBot() Bot {
+	return &bot{}
+}
 
+// Start the server of dev search bot
+func (b *bot) Start() error {
+	const port string = ":3000"
 
-// Start the server of dev search
-// To run this server, you need set up the enviroment var
-// SLACK_ACCESS_TOKEN w/ the token of the slack bot app
-func (b *Bot) Start() {
-	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) { 
-		if request.URL.Path != "/" {
-			http.NotFound(writer, request)
-			return
-		}
-		if request.Method == "POST" {	
-				err := request.ParseForm()
-				if err != nil {
-					log.Fatal(err)
-				}
-				postURL, userName, text := request.PostForm.Get(`response_url`), request.PostForm.Get(`user_name`), request.PostForm.Get(`text`)
-				handleMessage(postURL, userName, text)
-		} else {
-				http.Error(writer, "Invalid request method.", 405)					
-		} 
-	})				
+	httpRouter.Post("/slack/slash-commands/devz-search", devSearchController.SlashCommands)
+
+	httpRouter.Post("/slack/actions/devz-search", devSearchController.Actions)
+
+	err := httpRouter.Serve(port)
+	if err != nil {
+		return err
+	}
 	
-  log.Println("Listening on :3000...")
-  log.Fatal(http.ListenAndServe(":3000", nil))
-
+	return nil
 }
