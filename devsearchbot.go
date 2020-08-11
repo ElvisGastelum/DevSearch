@@ -1,66 +1,44 @@
 package devsearchbot
 
 import (
-	"log"
-	"net/http"
-	"encoding/json"
-	
+	"github.com/elvisgastelum/devsearchbot/controller"
+	router "github.com/elvisgastelum/devsearchbot/http"
 )
 
-// Bot is the instance of dev search
+var (
+	devSearchController controller.DevSearchController = controller.NewDevSearchController()
+	httpRouter          router.Router                  = router.NewMuxRouter()
+)
+
+type bot struct{}
+
+// Bot is the public interface to create the bot 
+type Bot interface {
+	Start() error
+}
+
+// NewDevSearchBot return the instance of dev search
 // Simple example use:
 //
-// bot := devsearchbot.Bot{}
+// bot := devsearchbot.NewBot()
 //
 // bot.Start()
-type Bot struct{}
-
-type ActionBlock struct {
-	Action []Actions `json:"actions"`
-	URL string `json:"response_url"`
+func NewDevSearchBot() Bot {
+	return &bot{}
 }
 
-type Actions struct {
-	Value string `json:"value"`	
-}
+// Start the server of dev search bot
+func (b *bot) Start() error {
+	const port string = ":3000"
 
+	httpRouter.Post("/slack/slash-commands/devz-search", devSearchController.SlashCommands)
 
-// Start the server of dev search
-// To run this server, you need set up the enviroment var
-// SLACK_ACCESS_TOKEN w/ the token of the slack bot app
-func (b *Bot) Start() {
-	http.HandleFunc("/slack/slash-commands/devz-search", func(writer http.ResponseWriter, request *http.Request) { 
-		if request.Method == "POST" {	
-				err := request.ParseForm()
-				if err != nil {
-					log.Fatal(err)
-				}
-				writer.WriteHeader(http.StatusOK)
-				postURL, userName, text := request.PostForm.Get(`response_url`), request.PostForm.Get(`user_name`), request.PostForm.Get(`text`)				
-				handleMessage(postURL, userName, text)
-		} else {
-				http.Error(writer, "Invalid request method.", 405)					
-		} 
-	})			
+	httpRouter.Post("/slack/actions/devz-search", devSearchController.Actions)
+
+	err := httpRouter.Serve(port)
+	if err != nil {
+		return err
+	}
 	
-	http.HandleFunc("/slack/actions/devz-search", func(writer http.ResponseWriter, request *http.Request) { 
-		if request.Method == "POST" {	
-			err := request.ParseForm()
-			if err != nil {
-				log.Fatal(err)
-			}
-			jsonPayload := request.Form.Get("payload")
-			jsonStructure := ActionBlock{}
-			jsonErr := json.Unmarshal([]byte(jsonPayload), &jsonStructure)
-			if jsonErr != nil {
-				log.Fatal(jsonErr)
-			}	
-			ButtonAction(jsonStructure.Action[0].Value, jsonStructure.URL)
-		} else {
-			http.Error(writer, "Invalid request method.", 405)					
-		} 
-	})
-	
-  log.Println("Listening on :3000...")
-  log.Fatal(http.ListenAndServe(":3000", nil))
+	return nil
 }
