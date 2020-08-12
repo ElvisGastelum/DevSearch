@@ -2,7 +2,6 @@ package model
 
 import (
 	"encoding/json"
-	
 )
 
 // ActionResponse is the inteface to response from actions

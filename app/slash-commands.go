@@ -13,6 +13,39 @@ import (
 	"github.com/elvisgastelum/devsearchbot/model"
 )
 
+var (
+	cancelBlock = map[string]interface{}{
+		"type": "actions",
+		"elements": []map[string]interface{}{
+			{
+				"type": "button",
+				"text": map[string]interface{}{
+					"type":  "plain_text",
+					"text":  "Cancel",
+					"emoji": true,
+				},
+				"style": "danger",
+				"value": "cancel",
+			},
+		},
+	}
+	acceptBlock = map[string]interface{}{
+		"type": "actions",
+		"elements": []map[string]interface{}{
+			{
+				"type": "button",
+				"text": map[string]interface{}{
+					"type":  "plain_text",
+					"text":  "Accept",
+					"emoji": true,
+				},
+				"style": "primary",
+				"value": "cancel",
+			},
+		},
+	}
+)
+
 // SlashCommands is function for handle the incomming messages
 func SlashCommands(url, text string) {
 	answer, err := searchAnswer(text)
@@ -69,54 +102,62 @@ func apiMessage(jsonRaw []byte) model.SearchResults {
 }
 
 func slashCommandResponse(data model.SearchResults) *model.SlashCommandResponse {
-	if len(data.Items) < 3 {
-		return nil
+	slashCommandResponse := model.SlashCommandResponse{}
+	blocks := make([]map[string]interface{}, 0)
+	countResults := len(data.Items)
+
+	if countResults < 1 {
+		blocks = append(blocks, createBlock(
+			"The search did not produce any results",
+		))
+		blocks = append(blocks, acceptBlock)
+		
+		slashCommandResponse["blocks"] = blocks
+		return &slashCommandResponse
 	}
 
-	slashCommandResponse := model.SlashCommandResponse{}
-	blocks := make([]map[string]interface{}, 4)
-
-	for i := 0; i < 3; i++ {
+	Loop:
+	for i := 0; i < countResults; i++ {
 		item := data.Items[i]
 
-		buttonValue := fmt.Sprintf("*<%s|%s>*\n>_%s_", item.Link, item.Title, strings.Replace(item.Snippet, "\n", " ", -1))
+		textValue := fmt.Sprintf("*<%s|%s>*\n>_%s_", item.Link, item.Title, strings.Replace(item.Snippet, "\n", " ", -1))
 
-		blocks[i] = map[string]interface{}{
-			"type": "section",
-			"accessory": map[string]interface{}{
-				"type": "button",
-				"text": map[string]interface{}{
-					"type":  "plain_text",
-					"text":  "Send",
-					"emoji": true,
-				},
-				"value": buttonValue,
-			},
-			"text": map[string]interface{}{
-				"type": "mrkdwn",
-				"text": buttonValue,
-			},
+		blocks = append(blocks, createBlock(textValue))
+		
+		if i == 3 {
+			break Loop
 		}
-
 	}
+	
+	blocks = append(blocks, cancelBlock)
+	slashCommandResponse["blocks"] = blocks
+	return &slashCommandResponse
+}
 
-	blocks[3] = map[string]interface{}{
-		"type": "actions",
-		"elements": []map[string]interface{}{
-			{
-				"type": "button",
-				"text": map[string]interface{}{
-					"type":  "plain_text",
-					"text":  "Cancel",
-					"emoji": true,
-				},
-				"style": "danger",
-				"value": "cancel",
-			},
+func createBlock(textValue string) map[string]interface{} {
+
+	result :=  map[string]interface{}{
+		"type": "section",
+		"text": map[string]interface{}{
+			"type": "mrkdwn",
+			"text": textValue,
 		},
 	}
 
-	slashCommandResponse["blocks"] = blocks
+	if textValue != "The search did not produce any results" {
+		result["accessory"] = map[string]interface{}{
+			"type": "button",
+			"text": map[string]interface{}{
+				"type":  "plain_text",
+				"text":  "Send",
+				"emoji": true,
+			},
+			"value": textValue,
+		}
+	}
 
-	return &slashCommandResponse
+	return result
+
 }
+
+
