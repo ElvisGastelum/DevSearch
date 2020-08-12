@@ -8,13 +8,20 @@ A slack bot in go
 package main
 
 import (
-	"github.com/elvisgastelum/devsearchbot"	
+	"log"
+
+	"github.com/elvisgastelum/devsearchbot"
 )
 
-// Before run this program i set up the enviroment variable "SLACK_ACCESS_TOKEN"
-func main() {
-	bot := devsearchbot.Bot{}
+var (
+	bot devsearchbot.Bot = devsearchbot.NewDevSearchBot()
+)
 
-	bot.Start()
+func main() {
+	err := bot.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
+
 ```

@@ -1,30 +1,44 @@
 package devsearchbot
 
 import (
-
-  "github.com/slack-go/slack"
-  "github.com/elvisgastelum/utils"
+	"github.com/elvisgastelum/devsearchbot/controller"
+	router "github.com/elvisgastelum/devsearchbot/http"
 )
 
-// Bot is the instance of dev search
-// Simple example use:
-//
-// bot := devsearchbot.Bot{}
-//
-// bot.Start()
-type Bot struct{}
+var (
+	devSearchController controller.DevSearchController = controller.NewDevSearchController()
+	httpRouter          router.Router                  = router.NewMuxRouter()
+)
 
+type bot struct{}
 
-// Start the server of dev search
-// To run this server, you need set up the enviroment var
-// SLACK_ACCESS_TOKEN w/ the token of the slack bot app
-func (b *Bot) Start() {
-	token := utils.Getenv("SLACK_ACCESS_TOKEN")
-  api := slack.New(token)
-  rtm := api.NewRTM()
-  go rtm.ManageConnection()
-
-  loop(rtm)
+// Bot is the public interface to create the bot 
+type Bot interface {
+	Start() error
 }
 
+// NewDevSearchBot return the instance of dev search
+// Simple example use:
+//
+// bot := devsearchbot.NewBot()
+//
+// bot.Start()
+func NewDevSearchBot() Bot {
+	return &bot{}
+}
 
+// Start the server of dev search bot
+func (b *bot) Start() error {
+	const port string = ":3000"
+
+	httpRouter.Post("/slack/slash-commands/devz-search", devSearchController.SlashCommands)
+
+	httpRouter.Post("/slack/actions/devz-search", devSearchController.Actions)
+
+	err := httpRouter.Serve(port)
+	if err != nil {
+		return err
+	}
+	
+	return nil
+}
